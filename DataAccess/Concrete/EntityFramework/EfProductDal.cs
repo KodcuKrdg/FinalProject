@@ -1,5 +1,7 @@
-﻿using DataAccess.Abstract;
+﻿using Core.DataAccess.EntityFramework;
+using DataAccess.Abstract;
 using Entities.Concrete;
+using Entities.DTOs;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -10,56 +12,19 @@ using System.Threading.Tasks;
 
 namespace DataAccess.Concrete.EntityFramework
 {
-    public class EfProductDal : IProductDal
+    //"IProductDal" ın istediği imzalamalar  "EfEntityRepositoryBase" in içinde var o yüzden sorunsuz çalışır
+    public class EfProductDal : EfEntityRepositoryBase<Product, NorthwindContext>, IProductDal
     {
-        public void Add(Product entity)
-        {
-            //IDısposable pattern implementation of c#
-            using (NorthwindContext context = new NorthwindContext()) // işlem bitince bellekten silinir
-            {
-                var addedEntity = context.Entry(entity); //"Entry()"-> Git veritabanındaki nesneye ilişkilendir demek 
-                addedEntity.State = EntityState.Added; // "Entry()" ile eşitleneni "Ekleme" "Güncelleme" "Silme" yapar
-                context.SaveChanges(); //"SaveChanges()"-> işlemleri gerçekleştir
-            }
-        }
-
-        public void Delete(Product entity)
-        {
-            //IDısposable pattern implementation of c#
-            using (NorthwindContext context = new NorthwindContext()) // işlem bitince bellekten silinir
-            {
-                var deletedEntity = context.Entry(entity); //"Entry()"-> Git veritabanındaki nesneye ilişkilendir demek 
-                deletedEntity.State = EntityState.Deleted; // "Entry()" ile eşitleneni "Ekleme" "Güncelleme" "Silme" yapar
-                context.SaveChanges(); //"SaveChanges()"-> işlemleri gerçekleştir
-            }
-        }
-
-        public Product Get(Expression<Func<Product, bool>> filter)
+        public List<ProductDetailDto> GetProductDetails()
         {
             using (NorthwindContext context = new NorthwindContext())
             {
-                return context.Set<Product>().SingleOrDefault(filter);
-            }
-        }
+                var result = from p in context.Products
+                             join c in context.Categories
+                             on p.CategoryId equals c.CategoryId //p.CategoryId==c.CategoryId
+                             select new ProductDetailDto { ProductId = p.ProductId, ProductName = p.ProductName, CategoryName = c.CategoryName, UnitsInStock = p.UnitsInStock };
 
-        public List<Product> GetAll(Expression<Func<Product, bool>> filter = null)
-        {
-            using (NorthwindContext context = new NorthwindContext())
-            {
-                //filter == null ? "null ise" : "nul değilse"
-                //context.Set<Product>().ToList() Veritabanındaki "Product" tablosunu liste olarak verir 
-                return filter == null ? context.Set<Product>().ToList() : context.Set<Product>().Where(filter).ToList();
-            }
-        }
-
-        public void Update(Product entity)
-        {
-            //IDısposable pattern implementation of c#
-            using (NorthwindContext context = new NorthwindContext()) // işlem bitince bellekten silinir
-            {
-                var updatedEntity = context.Entry(entity); //"Entry()"-> Git veritabanındaki nesneye ilişkilendir demek 
-                updatedEntity.State = EntityState.Modified; // "Entry()" ile eşitleneni "Ekleme" "Güncelleme" "Silme" yapar
-                context.SaveChanges(); //"SaveChanges()"-> işlemleri gerçekleştir
+                return result.ToList(); // sonucu liste halinde geri verdik
             }
         }
     }
